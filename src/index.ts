@@ -24,7 +24,7 @@ import { filterFiles, shouldIgnoreFile } from './files/filter'
 import { PathMapper } from './files/path'
 import { getGitChangedFiles, getGitCommitImageFiles, getGitCommitRangeImageFiles, isImageFile, parseGitCommitRangeArg, scanDirectory } from './files/scanner'
 import { selectFilesCustom } from './ui/custom-selector'
-import { logDeleteError, logDeleteSuccess, logUploadError, logUploadSuccess } from './ui/progress'
+import { createTaskSpinner, logDeleteError, logDeleteSuccess, logUploadError, logUploadSuccess } from './ui/progress'
 
 const DEFAULT_STATUS_CHECK_CONCURRENCY = 5
 const DEFAULT_UPLOAD_CONCURRENCY = 5
@@ -391,32 +391,43 @@ export default class CDNSyncPlugin extends InitxPlugin<Store> {
       }
 
       // 8. 检查文件的线上状态
-      logger.info('检查文件状态...')
       const statusLimit = pLimit(statusCheckConcurrency)
-      const fileExistsResults = await Promise.all(
-        fileInfos.map(file =>
-          statusLimit(async () => {
-            try {
-              return await this.cdnClient.getRemoteFileStatus(
-                this.config.client.bucket,
-                this.config.client.region,
-                file.cdnPath,
-                file.syncAction === 'delete'
-                  ? undefined
-                  : {
-                    // revert 条目尚无磁盘文件：--diff 时只比较大小，避免对不存在的 localPath 算 MD5
-                      diff: this.diffMode,
-                      localFilePath: this.diffMode && file.gitRevertSource ? undefined : file.localPath,
-                      localFileSize: file.size
-                    }
-              )
-            }
-            catch (error: any) {
-              throw new Error(`检查文件状态失败: ${file.relativePath} (${error.message})`)
-            }
-          })
-        )
-      )
+      const statusSpinner = createTaskSpinner('检查文件状态...')
+      statusSpinner.start()
+      const fileExistsResults = await (async () => {
+        try {
+          const results = await Promise.all(
+            fileInfos.map(file =>
+              statusLimit(async () => {
+                try {
+                  return await this.cdnClient.getRemoteFileStatus(
+                    this.config.client.bucket,
+                    this.config.client.region,
+                    file.cdnPath,
+                    file.syncAction === 'delete'
+                      ? undefined
+                      : {
+                        // revert 条目尚无磁盘文件：--diff 时只比较大小，避免对不存在的 localPath 算 MD5
+                          diff: this.diffMode,
+                          localFilePath: this.diffMode && file.gitRevertSource ? undefined : file.localPath,
+                          localFileSize: file.size
+                        }
+                  )
+                }
+                catch (error: any) {
+                  throw new Error(`检查文件状态失败: ${file.relativePath} (${error.message})`)
+                }
+              })
+            )
+          )
+          statusSpinner.succeed(`文件状态检查完成（${fileInfos.length} 个）`)
+          return results
+        }
+        catch (error: any) {
+          statusSpinner.fail('文件状态检查失败')
+          throw error
+        }
+      })()
       fileInfos.forEach((file, index) => {
         const status = fileExistsResults[index]
         file.exists = status.exists

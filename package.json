@@ -41,8 +41,8 @@
     "@inquirer/prompts": "^8.4.3",
     "cos-nodejs-sdk-v5": "^2.15.4",
     "defu": "^6.1.7",
-    "ora": "^9.4.0",
     "p-limit": "^7.3.0",
+    "picospinner": "^3.0.0",
     "simple-git": "^3.36.0",
     "tinyglobby": "^0.2.16",
     "unconfig": "^7.5.0"

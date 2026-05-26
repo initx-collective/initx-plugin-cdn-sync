@@ -1,6 +1,34 @@
 import type { FileInfo } from '../types'
 import process from 'node:process'
 import { styleText } from 'node:util'
+import { Spinner } from 'picospinner'
+
+export interface TaskSpinner {
+  start: () => void
+  setText: (text: string) => void
+  succeed: (text: string) => void
+  fail: (text: string) => void
+  stop: () => void
+}
+
+/**
+ * 创建任务级 spinner，用于长耗时阶段提示。
+ */
+export function createTaskSpinner(text: string): TaskSpinner {
+  const spinner = new Spinner(text, {
+    colors: {
+      spinner: 'cyan',
+      text: 'dim'
+    }
+  })
+  return {
+    start: () => spinner.start(),
+    setText: value => spinner.setText(value),
+    succeed: value => spinner.succeed(value),
+    fail: value => spinner.fail(value),
+    stop: () => spinner.stop()
+  }
+}
 
 function formatCdnUrl(url: string, relativePath: string): string {
   const normalizedRelativePath = relativePath.replaceAll('\\', '/')

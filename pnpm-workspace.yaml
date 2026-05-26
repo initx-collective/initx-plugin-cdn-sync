@@ -1,0 +1,11 @@
+shellEmulator: true
+
+trustPolicy: no-downgrade
+
+# cos-nodejs-sdk-v5 → conf/make-dir 等仍解析到 semver@6.3.1；该版本无 provenance，与 pnpm「不降级」策略冲突。排除后仍由 lockfile 固定版本号。
+trustPolicyExclude:
+  - semver@6.3.1
+
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true

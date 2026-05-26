@@ -1,7 +1,7 @@
 {
   "name": "initx-plugin-cdn-sync",
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.0.1",
   "packageManager": "pnpm@11.1.1",
   "description": "CDN file sync plugin for initx - Upload files to Tencent Cloud COS",
   "author": "imba97",
